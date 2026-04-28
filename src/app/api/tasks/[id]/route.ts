@@ -53,7 +53,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const updateData: Record<string, unknown> = { ...parsed.data };
+    const updateData: import("@prisma/client").Prisma.TaskUpdateInput = { ...parsed.data };
 
     if (parsed.data.status === "COMPLETED") {
       updateData.completedAt = new Date();

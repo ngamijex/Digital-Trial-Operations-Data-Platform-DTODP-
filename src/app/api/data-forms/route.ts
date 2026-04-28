@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         trialId: parsed.data.trialId,
         name: parsed.data.name,
         description: parsed.data.description,
-        schema: parsed.data.schema,
+        schema: parsed.data.schema as import("@prisma/client").Prisma.InputJsonValue,
       },
     });
 
