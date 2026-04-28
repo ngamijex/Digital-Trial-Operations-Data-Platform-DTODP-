@@ -150,8 +150,8 @@ export default function SettingsPage() {
               </div>
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="font-medium text-sm" style={{ color: "var(--color-text-dark)" }}">Email notifications</p>
-                  <p className="text-xs" style={{ color: "var(--color-text-muted)" }}">Send email alerts for critical events</p>
+                  <p className="font-medium text-sm" style={{ color: "var(--color-text-dark)" }}>Email notifications</p>
+                  <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Send email alerts for critical events</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" defaultChecked className="sr-only peer" />
@@ -160,7 +160,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="font-medium text-sm" style={{ color: "var(--color-text-dark)" }}">Maintenance mode</p>
+                  <p className="font-medium text-sm" style={{ color: "var(--color-text-dark)" }}>Maintenance mode</p>
                   <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Disable system for maintenance</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
