@@ -134,7 +134,6 @@ export default function TasksPage() {
             style={{
               backgroundColor: s === "" ? (statusFilter === "" ? "var(--color-primary)" : "var(--color-light-gray)") : undefined,
               color: s === "" ? (statusFilter === "" ? "white" : "var(--color-text-body)") : undefined,
-              ringColor: "var(--color-secondary)",
             }}
           >
             <span className={s ? TASK_STATUS_COLORS[s] : ""}>{s ? s.replace("_", " ") : "All"}</span>
