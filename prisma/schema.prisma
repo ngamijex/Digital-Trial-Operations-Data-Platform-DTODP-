@@ -1,0 +1,518 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  TRIAL_OWNER
+  DATA_TEAM
+  FIELD_TRIALS_TEAM
+  STATION_TEAM
+  LAB_TEAM
+  INVENTORY_TEAM
+  HTE_TEAM
+}
+
+enum TrialPhase {
+  PHASE_0
+  PHASE_1
+  PHASE_2
+  ANALYSIS
+  REPORTING
+  COMPLETED
+}
+
+enum TrialStatus {
+  DRAFT
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum Season {
+  A
+  B
+  C
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  BLOCKED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  VALIDATED
+  REJECTED
+  CLEANED
+}
+
+enum EscalationLevel {
+  NONE
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
+}
+
+enum SampleType {
+  SOIL
+  PLANT
+  COMPOST
+  FERTILISER
+}
+
+enum SampleStatus {
+  RECEIVED
+  PROCESSING
+  ANALYSED
+  DISPATCHED
+}
+
+// ─── USERS & AUTH ───────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  role          UserRole  @default(TRIAL_OWNER)
+  department    String?
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  ownedTrials       Trial[]           @relation("TrialOwner")
+  assignedTasks     Task[]            @relation("TaskAssignee")
+  createdTasks      Task[]            @relation("TaskCreator")
+  submissions       DataSubmission[]
+  validationLogs    ValidationLog[]
+  escalationsRaised Escalation[]      @relation("EscalationRaisedBy")
+  notifications     Notification[]
+  activityLogs      ActivityLog[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// ─── TRIALS ─────────────────────────────────────────────────────────────────
+
+model Trial {
+  id              String      @id @default(cuid())
+  code            String      @unique
+  name            String
+  description     String?
+  objectives      String?
+  hypotheses      String?
+  kpis            String?
+  variables       String?
+  cropType        String?
+  season          Season
+  year            Int
+  phase           TrialPhase  @default(PHASE_0)
+  status          TrialStatus @default(DRAFT)
+  startDate       DateTime?
+  endDate         DateTime?
+  plotSize        String?
+  sampleSize      Int?
+  experimentDesign String?
+  locations       String?
+  treatments      String?
+
+  ownerId         String
+  owner           User        @relation("TrialOwner", fields: [ownerId], references: [id])
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  trialPhases     TrialPhaseRecord[]
+  tasks           Task[]
+  documents       Document[]
+  dataForms       DataForm[]
+  submissions     DataSubmission[]
+  observations    Observation[]
+  farmers         TrialFarmer[]
+  trialLocations  TrialLocation[]
+  labSamples      LabSample[]
+  escalations     Escalation[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([phase])
+  @@index([season, year])
+  @@map("trials")
+}
+
+model TrialPhaseRecord {
+  id          String     @id @default(cuid())
+  trialId     String
+  trial       Trial      @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  phase       TrialPhase
+  startDate   DateTime?
+  endDate     DateTime?
+  notes       String?
+  isComplete  Boolean    @default(false)
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@unique([trialId, phase])
+  @@map("trial_phase_records")
+}
+
+// ─── SLA TASKS ──────────────────────────────────────────────────────────────
+
+model SlaTemplate {
+  id                String       @id @default(cuid())
+  serviceCategory   String
+  servingTeam       UserRole
+  clientTeam        UserRole
+  taskName          String
+  description       String?
+  defaultDaysToComplete Int?
+  seasonADeadline   String?
+  seasonBDeadline   String?
+  seasonCDeadline   String?
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+
+  tasks             Task[]
+
+  @@map("sla_templates")
+}
+
+model Task {
+  id              String       @id @default(cuid())
+  title           String
+  description     String?
+  status          TaskStatus   @default(NOT_STARTED)
+  priority        TaskPriority @default(MEDIUM)
+  dueDate         DateTime?
+  completedAt     DateTime?
+  season          Season?
+  year            Int?
+
+  trialId         String?
+  trial           Trial?       @relation(fields: [trialId], references: [id], onDelete: SetNull)
+
+  assigneeId      String?
+  assignee        User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  creatorId       String
+  creator         User         @relation("TaskCreator", fields: [creatorId], references: [id])
+
+  slaTemplateId   String?
+  slaTemplate     SlaTemplate? @relation(fields: [slaTemplateId], references: [id])
+
+  dependsOnId     String?
+  dependsOn       Task?        @relation("TaskDependency", fields: [dependsOnId], references: [id])
+  dependentTasks  Task[]       @relation("TaskDependency")
+
+  escalationLevel EscalationLevel @default(NONE)
+  slaDeadline     DateTime?
+  isOverdue       Boolean      @default(false)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([trialId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+// ─── DOCUMENTS ──────────────────────────────────────────────────────────────
+
+model Document {
+  id          String   @id @default(cuid())
+  trialId     String
+  trial       Trial    @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  name        String
+  type        String
+  url         String?
+  content     String?
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([trialId])
+  @@map("documents")
+}
+
+// ─── DATA COLLECTION ────────────────────────────────────────────────────────
+
+model DataForm {
+  id          String   @id @default(cuid())
+  trialId     String
+  trial       Trial    @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  version     Int      @default(1)
+  schema      Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  submissions DataSubmission[]
+
+  @@index([trialId])
+  @@map("data_forms")
+}
+
+model DataSubmission {
+  id          String           @id @default(cuid())
+  formId      String
+  form        DataForm         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  trialId     String
+  trial       Trial            @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  submitterId String
+  submitter   User             @relation(fields: [submitterId], references: [id])
+  data        Json
+  status      SubmissionStatus @default(DRAFT)
+  submittedAt DateTime?
+  validatedAt DateTime?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  validationLogs ValidationLog[]
+
+  @@index([formId])
+  @@index([trialId])
+  @@index([submitterId])
+  @@index([status])
+  @@map("data_submissions")
+}
+
+model ValidationLog {
+  id           String   @id @default(cuid())
+  submissionId String
+  submission   DataSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  validatorId  String
+  validator    User     @relation(fields: [validatorId], references: [id])
+  fieldName    String?
+  ruleType     String
+  message      String
+  severity     String   @default("warning")
+  isResolved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([submissionId])
+  @@map("validation_logs")
+}
+
+// ─── OBSERVATIONS & RESULTS ─────────────────────────────────────────────────
+
+model Observation {
+  id          String   @id @default(cuid())
+  trialId     String
+  trial       Trial    @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id])
+  farmerId    String?
+  date        DateTime
+  category    String
+  value       String
+  unit        String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([trialId])
+  @@index([locationId])
+  @@map("observations")
+}
+
+// ─── FARMERS ────────────────────────────────────────────────────────────────
+
+model Farmer {
+  id          String   @id @default(cuid())
+  farmerId    String   @unique
+  name        String
+  phone       String?
+  district    String?
+  sector      String?
+  cell        String?
+  village     String?
+  aez         String?
+  latitude    Float?
+  longitude   Float?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trialFarmers TrialFarmer[]
+
+  @@index([district])
+  @@map("farmers")
+}
+
+model TrialFarmer {
+  id          String   @id @default(cuid())
+  trialId     String
+  trial       Trial    @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  farmerId    String
+  farmer      Farmer   @relation(fields: [farmerId], references: [id])
+  treatment   String?
+  plotCode    String?
+  isValidated Boolean  @default(false)
+  enrolledAt  DateTime @default(now())
+
+  @@unique([trialId, farmerId])
+  @@map("trial_farmers")
+}
+
+// ─── LOCATIONS ──────────────────────────────────────────────────────────────
+
+model Location {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  district    String?
+  sector      String?
+  province    String?
+  aez         String?
+  latitude    Float?
+  longitude   Float?
+  elevation   Float?
+  createdAt   DateTime @default(now())
+
+  trialLocations TrialLocation[]
+  observations   Observation[]
+  weatherData    WeatherData[]
+
+  @@map("locations")
+}
+
+model TrialLocation {
+  id          String   @id @default(cuid())
+  trialId     String
+  trial       Trial    @relation(fields: [trialId], references: [id], onDelete: Cascade)
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+  isPrimary   Boolean  @default(false)
+
+  @@unique([trialId, locationId])
+  @@map("trial_locations")
+}
+
+// ─── WEATHER DATA ───────────────────────────────────────────────────────────
+
+model WeatherData {
+  id          String   @id @default(cuid())
+  locationId  String
+  location    Location @relation(fields: [locationId], references: [id])
+  date        DateTime
+  rainfall    Float?
+  tempMin     Float?
+  tempMax     Float?
+  humidity    Float?
+  solarRad    Float?
+  windSpeed   Float?
+  source      String?
+  createdAt   DateTime @default(now())
+
+  @@index([locationId, date])
+  @@map("weather_data")
+}
+
+// ─── LAB SAMPLES & RESULTS ──────────────────────────────────────────────────
+
+model LabSample {
+  id            String       @id @default(cuid())
+  trialId       String?
+  trial         Trial?       @relation(fields: [trialId], references: [id])
+  sampleCode    String       @unique
+  type          SampleType
+  status        SampleStatus @default(RECEIVED)
+  collectionDate DateTime?
+  receivedDate  DateTime?
+  parameters    String?
+  results       Json?
+  analysedBy    String?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([trialId])
+  @@index([status])
+  @@map("lab_samples")
+}
+
+// ─── ESCALATIONS ────────────────────────────────────────────────────────────
+
+model Escalation {
+  id          String          @id @default(cuid())
+  trialId     String?
+  trial       Trial?          @relation(fields: [trialId], references: [id])
+  raisedById  String
+  raisedBy    User            @relation("EscalationRaisedBy", fields: [raisedById], references: [id])
+  level       EscalationLevel @default(LEVEL_1)
+  subject     String
+  description String
+  servingTeam UserRole
+  isResolved  Boolean         @default(false)
+  resolvedAt  DateTime?
+  resolution  String?
+  createdAt   DateTime        @default(now())
+
+  @@index([trialId])
+  @@map("escalations")
+}
+
+// ─── NOTIFICATIONS ──────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("info")
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── ACTIVITY LOG ───────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("activity_logs")
+}

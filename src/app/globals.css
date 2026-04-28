@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1a3c1f;
+  --color-primary-dark: #102614;
+  --color-primary-medium: #234a28;
+  --color-primary-light: #2e6634;
+  --color-accent: #f5c400;
+  --color-accent-dark: #d4a900;
+  --color-accent-light: #ffd740;
+  --color-accent-pale: #fff8d6;
+  --color-secondary: #3a7d44;
+  --color-secondary-dark: #2d6235;
+  --color-secondary-light: #4e9e5a;
+  --color-secondary-pale: #e8f5e9;
+  --color-white: #ffffff;
+  --color-off-white: #f9faf5;
+  --color-light-gray: #f2f4ee;
+  --color-mid-gray: #c8cdc0;
+  --color-text-muted: #6b7660;
+  --color-text-body: #3d4535;
+  --color-text-dark: #1a2118;
+  --color-black: #0d1209;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
+  --shadow-xs: 0 1px 3px rgba(26,60,31,0.08);
+  --shadow-sm: 0 2px 8px rgba(26,60,31,0.10);
+  --shadow-md: 0 6px 20px rgba(26,60,31,0.14);
+  --shadow-lg: 0 12px 40px rgba(26,60,31,0.18);
+  --shadow-card: 0 8px 32px rgba(26,60,31,0.16);
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text-body);
+  background-color: var(--color-off-white);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-text-dark);
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white transition-all;
+    background-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-primary:hover {
+    background-color: var(--color-primary-medium);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-bold transition-all;
+    background-color: var(--color-accent);
+    color: var(--color-primary-dark);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-accent:hover {
+    background-color: var(--color-accent-dark);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-all;
+    border-color: rgba(58, 125, 68, 0.3);
+    color: var(--color-primary);
+  }
+  .btn-outline:hover {
+    background-color: var(--color-secondary-pale);
+    border-color: var(--color-secondary);
+  }
+
+  .card {
+    @apply rounded-md border bg-white;
+    border-color: rgba(58, 125, 68, 0.12);
+    box-shadow: var(--shadow-xs);
+  }
+  .card:hover {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .input-field {
+    @apply w-full rounded-md border px-3 py-2 text-sm transition-all outline-none;
+    border-color: var(--color-mid-gray);
+    background-color: var(--color-white);
+    color: var(--color-text-dark);
+  }
+  .input-field:focus {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px rgba(58, 125, 68, 0.15);
+  }
+  .input-field::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .stat-card {
+    @apply card p-5;
+  }
+
+  .page-header {
+    @apply mb-6;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold tracking-tight;
+    font-family: var(--font-display);
+    color: var(--color-text-dark);
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm;
+    color: var(--color-text-muted);
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-light-gray);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-mid-gray);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
