@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         formId: parsed.data.formId,
         trialId: parsed.data.trialId,
         submitterId: userId,
-        data: parsed.data.data,
+        data: parsed.data.data as import("@prisma/client").Prisma.InputJsonValue,
         status: "SUBMITTED",
         submittedAt: new Date(),
       },
